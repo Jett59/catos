@@ -1,7 +1,7 @@
 ARCH            = $(shell uname -m | sed s,i[3456789]86,ia32,)
 
 OBJS            = main.o
-TARGET          = hello.efi
+TARGET          = efi/boot/hello.efi
 
 EFIINC          = /usr/include/efi
 EFIINCS         = -I$(EFIINC) -I$(EFIINC)/$(ARCH) -I$(EFIINC)/protocol
@@ -24,10 +24,11 @@ all: $(TARGET)
 hello.so: $(OBJS)
 	ld $(LDFLAGS) $(OBJS) -o $@ -lefi -lgnuefi
 
-%.efi: %.so
+efi/boot/%.efi: %.so
+	mkdir -p efi/boot
 	objcopy -j .text -j .sdata -j .data -j .dynamic \
 	-j .dynsym  -j .rel -j .rela -j .reloc \
 	--target=efi-app-$(ARCH) $^ $@
 
 clean:
-	rm -rf *.o *.so *.efi
+	rm -rf *.o *.so efi/
