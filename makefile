@@ -1,7 +1,6 @@
 ARCH            = $(shell uname -m | sed s,i[3456789]86,ia32,)
 
-OBJS            = main.o
-TARGET          = efi/boot/hello.efi
+TARGET          = efi/boot/main.efi
 
 EFIINC          = /usr/include/efi
 EFIINCS         = -I$(EFIINC) -I$(EFIINC)/$(ARCH) -I$(EFIINC)/protocol
@@ -21,8 +20,8 @@ LDFLAGS         = -nostdlib -znocombreloc -T $(EFI_LDS) -shared \
 
 all: $(TARGET)
 
-hello.so: $(OBJS)
-	ld $(LDFLAGS) $(OBJS) -o $@ -lefi -lgnuefi
+%.so: %.o
+	ld $(LDFLAGS) $^ -o $@ -lefi -lgnuefi
 
 efi/boot/%.efi: %.so
 	mkdir -p efi/boot
