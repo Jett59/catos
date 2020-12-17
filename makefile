@@ -1,21 +1,33 @@
-efi/boot/BOOTX64.EFI: boot.efi
-	mkdir -p efi/boot
-	mv boot.EFI efi/boot/BOOTX64.EFI
+ARCH            = $(shell uname -m | sed s,i[3456789]86,ia32,)
 
-boot.efi: boot.o
-	clang \
-	--target=x86_64-unknown-windows \
-	-nostdlib \
-	-Wl,-entry:efi_main \
-	-Wl,-subsystem:efi_application \
-	-fuse-ld=lld \
-	*.o
-	mv a.* boot.efi
+OBJS            = main.o
+TARGET          = hello.efi
 
-boot.o:
-	clang \
-	--target=x86_64-unknown-windows \
-	-ffreestanding \
-	-fshort-wchar \
-	-mno-red-zone \
-	-c *.c
+EFIINC          = /usr/include/efi
+EFIINCS         = -I$(EFIINC) -I$(EFIINC)/$(ARCH) -I$(EFIINC)/protocol
+LIB             = /usr/lib
+EFILIB          = /usr/lib
+EFI_CRT_OBJS    = $(EFILIB)/crt0-efi-$(ARCH).o
+EFI_LDS         = $(EFILIB)/elf_$(ARCH)_efi.lds
+
+CFLAGS          = $(EFIINCS) -fno-stack-protector -fpic \
+		  -fshort-wchar -mno-red-zone -Wall 
+ifeq ($(ARCH),x86_64)
+  CFLAGS += -DEFI_FUNCTION_WRAPPER
+endif
+
+LDFLAGS         = -nostdlib -znocombreloc -T $(EFI_LDS) -shared \
+		  -Bsymbolic -L $(EFILIB) -L $(LIB) $(EFI_CRT_OBJS) 
+
+all: $(TARGET)
+
+hello.so: $(OBJS)
+	ld $(LDFLAGS) $(OBJS) -o $@ -lefi -lgnuefi
+
+%.efi: %.so
+	objcopy -j .text -j .sdata -j .data -j .dynamic \
+	-j .dynsym  -j .rel -j .rela -j .reloc \
+	--target=efi-app-$(ARCH) $^ $@
+
+clean:
+	rm -rf *.o *.so *.efi
