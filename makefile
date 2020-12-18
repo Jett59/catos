@@ -20,7 +20,10 @@ LDFLAGS         = -nostdlib -znocombreloc -T $(EFI_LDS) -shared \
 
 all: $(TARGET)
 
-%.so: %.o
+%/objects.o:
+	make -C $(patsubst %/objects.o,%/,$@) objects.o
+
+%.so: %/objects.o
 	ld $(LDFLAGS) $^ -o $@ -lefi -lgnuefi
 
 efi/boot/%.efi: %.so
